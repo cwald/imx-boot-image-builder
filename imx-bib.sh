@@ -73,7 +73,7 @@ function usage {
 	echo '   -b           optional: latest if not specified
                       BSP Release in the form yocto_release-nxp_version
 		      example: -b hardknott-5.10.72-2.2.0'
-	echo '   -w A0|A1     which 8ULP version, default A1 if not given'
+	echo '   -w A0|A1|A2  which 8ULP version, default A1. Note: A2 uses A1.bin'
 	echo '   -m           EVK with ddr4 memory. Supported: 8mn, 8mm, 8mp. If no -m, EVK with LPDDR4'
 	echo '   -c           make clean then make'
 	echo '   -r           remove all'
@@ -123,7 +123,7 @@ while getopts ${optstring} arg; do
 	    if [[ $SOC == "8ulp" ]]; then
 		MKIMG_DIR=iMX8ULP
 		FLASH_IMG=flash_singleboot_m33
-		VERULP="A1"
+		VERULP="A2"
 		UBOOT_DEFCONFIG="imx8ulp_evk_defconfig"
 		SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
 	    elif [[ $SOC == "93" ]]; then
