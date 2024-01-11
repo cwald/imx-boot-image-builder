@@ -233,6 +233,7 @@ function repo_get {
 SCR=""
 FN_FW_POWER="firmware-upower"
 FN_FW_SENTINEL="firmware-sentinel"
+FN_FW_ELE="firmware-ele-imx"
 FN_M33DEMO="imx8ulp-m33-demo"
 FN_FW_IMX="firmware-imx"
 FW_IMX=""
@@ -241,6 +242,7 @@ LINUX_KER=""
 LINUX_REL=""
 FWPOW=""
 FWSENT=""
+FWELE=""
 FWM33DEMO=""
 TAG=""
 
@@ -267,11 +269,14 @@ function setupVar {
 	FWPOW=$(echo $FW_UPOW | cut -d ' ' -f2)
 	FW_SENT=$(grep $FN_FW_SENTINEL $SCR)
 	FWSENT=$(echo $FW_SENT | cut -d ' ' -f2)
+	FW_ELE=$(grep $FN_FW_ELE $SCR)
+	FWELE=$(echo $FW_ELE | cut -d ' ' -f2)
 	FW_M33=$(grep $FN_M33DEMO $SCR)
 	FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
 
 	echo "FWPOW =    " $FWPOW
 	echo "FWSENT =   " $FWSENT
+	echo "FWELE  =   " $FWELE
 	echo "FWM33DEMO= " $FWM33DEMO
     fi
     echo "FLASH_IMG= " $FLASH_IMG
@@ -324,6 +329,18 @@ function sentinel_fetch {
     cp mx93*.img ../../imx-mkimage/iMX9
     cd ../..
 }
+# Description: 8ulp EdgeLockEnclave (ELE) firmware
+function ele_fetch {
+    mkdir -p ele
+    cd ele
+    curl -R -k -f $NXP_FILES/$FWELE -o ./ele.bin
+    chmod a+x ./ele.bin
+    ./ele.bin --auto-accept
+    cd firmware-*
+    cp mx8ulpa?-ahab-container.img ../../imx-mkimage/iMX8ULP
+    cp mx93*.img ../../imx-mkimage/iMX9
+    cd ../..
+}
 
 
 # Description: 8ulp uPower firmware
@@ -368,11 +385,12 @@ function download {
     [ ! -d fw-imx ] && fw_fetch
 
     if [[ $SOC == '8ulp'  ||  $SOC == '93' ]]; then
-	[ ! -d sentinel ] && sentinel_fetch
+	[ ! -d ele ] && ele_fetch
 	[ ! -d upower ] && upwr_fetch
 	[ ! -d m33_demo ] && m33demo_fetch
     fi
 
+#	[ ! -d sentinel ] && sentinel_fetch
 }
 
 #----- Build functions -----
