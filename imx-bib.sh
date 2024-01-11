@@ -353,7 +353,7 @@ function upwr_fetch {
     cd firmware-upower-*
     cp upower_a?.bin ../../imx-mkimage/iMX8ULP
     
-    if [[ $VERULP == "A1" ]]; then
+    if [[ $VERULP == A[12] ]]; then
 	ln -fs ../../imx-mkimage/iMX8ULP/upower_a1.bin ../../imx-mkimage/iMX8ULP/upower.bin;
     else
 	echo "Trying to use upower_a0"
@@ -444,7 +444,7 @@ build_image() {
 
 	pushd imx-mkimage/iMX8ULP
 	
-	if [[ $VERULP == "A1" ]]; then
+	if [[ $VERULP == A[12] ]]; then
 	    ln -fs upower_a1.bin upower.bin;
 	else
 	ln -fs upower_a0.bin upower.bin;
