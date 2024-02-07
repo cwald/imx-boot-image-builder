@@ -6,7 +6,7 @@ Supported i.MX targets:
 - 8mplus [8MPLUSLPD4-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-plus-applications-processor:8MPLUSLPD4-EVK)
 - 8mnano [8MNANOD4-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-nano-applications-processor:8MNANOD4-EVK)
 - 8mquad [MCIMX8M-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-applications-processor:MCIMX8M-EVK) 
-- 8ulp [8ULPLPD4-EVK]
+- 8ulp [8ULPLPD4-EVK](https://www.nxp.com/design/design-center/development-boards/i-mx-evaluation-and-development-boards/i-mx-8ulp-evaluation-kit:MCIMX8ULP-EVK)
 - mx93
 
 ## Example
