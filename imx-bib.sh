@@ -2,7 +2,7 @@
 
 # imx-bib.sh : i.MX Boot Image Builder
 # 05/03/2022 - Curtis Wald curtis.wald@nxp.com
-#              concept from Robert Mcewan
+#              concept from Robert McEwan
 
 # Description: Build boot image
 # i.MX application processors supported: 8mq 8mm, 8mn, 8mp, 8ulp
@@ -257,7 +257,7 @@ function setupVar {
     LINUX_REL=$(echo $REV | cut -d ' ' -f4 | cut -d '-' -f2)
     TAG="lf-$LINUX_KER-$LINUX_REL"
 
-    if [ "$LINUX_KER" < 6.1.36 ]; then
+    if [ $LINUX_KER \< "6.1.36" ]; then
 	    AHAB93="A0"
     else
 	    AHAB93="A1"
