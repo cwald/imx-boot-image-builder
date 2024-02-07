@@ -94,7 +94,7 @@ function remove_all {
     rm -fr imx-mkimage
     rm -fr m33_demo
     rm -fr meta-imx
-    rm -fr sentinel
+    rm -fr sentinel ele
     rm -fr uboot-imx
     rm -fr upower
     rm -fr *.bin
