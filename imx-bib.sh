@@ -256,9 +256,19 @@ function setupVar {
     LINUX_KER=$(echo $REV | cut -d ' ' -f4 | cut -d '-' -f1 )
     LINUX_REL=$(echo $REV | cut -d ' ' -f4 | cut -d '-' -f2)
     TAG="lf-$LINUX_KER-$LINUX_REL"
+
+    if [ "$LINUX_KER" < 6.1.36 ]; then
+	    AHAB93="A0"
+    else
+	    AHAB93="A1"
+    fi
+
     echo "LINUX_KER= " $LINUX_KER
     echo "LINUX_REL= " $LINUX_REL
     echo "TAG =      " $TAG
+    if [ $SOC == "93" ]; then
+        echo "AHA93=     " $AHAB93
+    fi
 
     FW_IMX_SCR=$(grep $FN_FW_IMX $SCR)
     FW_IMX=$(echo $FW_IMX_SCR | cut -d ' ' -f2)
@@ -385,12 +395,11 @@ function download {
     [ ! -d fw-imx ] && fw_fetch
 
     if [[ $SOC == '8ulp'  ||  $SOC == '93' ]]; then
-	[ ! -d ele ] && ele_fetch
 	[ ! -d upower ] && upwr_fetch
 	[ ! -d m33_demo ] && m33demo_fetch
+	[ ! -d sentinel ] && sentinel_fetch
+	[ ! -d ele ] && ele_fetch
     fi
-
-#	[ ! -d sentinel ] && sentinel_fetch
 }
 
 #----- Build functions -----
@@ -452,7 +461,6 @@ build_image() {
 
 	popd
     fi
-
     
     cd imx-mkimage/
     pwd
@@ -461,7 +469,7 @@ build_image() {
 	make SOC=iMX$SOCU REV=$VERULP $FLASH_IMG
         cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     elif [[ $SOC == "93" ]]; then
-	make SOC=iMX9 $FLASH_IMG
+	make SOC=iMX9 REV=$AHAB93 $FLASH_IMG
 	cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     else
 	make SOC=iMX$SOCU $FLASH_IMG
@@ -469,7 +477,7 @@ build_image() {
     fi
     cd ..    
     [ -n "$V" ] && set +x
-    echo ${green}Boot Image success!${clr}
+#    echo ${green}Boot Image success!${clr}
 }
 #------------------------------
 # 
@@ -498,4 +506,3 @@ build_atf
 build_image
 echo "${yellow}Done ${SOC_FLASH_NAME} ${clr}"
 exit 0
-
