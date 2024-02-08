@@ -12,6 +12,7 @@ Supported i.MX targets:
 ## Example
 To create the boot loader for 8ULPLPD4-EVK:
   `./imx-bib.sh -p 8ulp -b mickledore-6.1.55-2.2.0`
+  
 i.MX 93 A0 EVK (note 6.1.36-2.1.0 and later support A1 only)
   `./imx-bib.sh -p 93 -b mickledore-6.1.22-2.0.0`
   
