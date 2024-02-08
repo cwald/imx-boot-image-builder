@@ -32,8 +32,8 @@ Create bootimage. Version  3.0
    -d           enable script debug 
    -h           Help message
 
- Example 8ulp A1:    ./imx-bib.sh -p 8ulp 
- Example 8mn LPDDR4: ./imx-bib.sh -p 8mn 
- Example 8mn DDR4:   ./imx-bib.sh -p 8mn -m 
+ Example 8ulp A2:    ./imx-bib.sh -p 8ulp -b mickledore-6.1.55-2.2.0 
+ Example 8mn LPDDR4: ./imx-bib.sh -p 8mn -b mickledore-6.1.55-2.2.0 
+ Example 8mn DDR4:   ./imx-bib.sh -p 8mn -m -b mickledore-6.1.55-2.2.0 
 
  ```
