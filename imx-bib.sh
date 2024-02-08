@@ -2,7 +2,7 @@
 
 # imx-bib.sh : i.MX Boot Image Builder
 # 05/03/2022 - Curtis Wald curtis.wald@nxp.com
-#              concept from Robert McEwan
+#              concept from Robert Mcewan
 
 # Description: Build boot image
 # i.MX application processors supported: 8mq 8mm, 8mn, 8mp, 8ulp
@@ -195,6 +195,9 @@ function hostPkg {
 
     [ ! -f /usr/bin/dtc ] && \
 	sudo apt install -y device-tree-compiler
+
+    [ ! -f /usr/include/uuid/uuid.h ] && \
+    sudo apt install -y uuid-dev 
 }
 
 
@@ -246,6 +249,34 @@ FWELE=""
 FWM33DEMO=""
 TAG=""
 
+ismx93()
+{
+    if [ $SOC == "93" ]; then
+        true; return
+    else
+        false; return
+    fi;
+}
+
+ismx8ulp()
+{
+    if [ $SOC == "8ulp" ]; then
+        true; return
+    else
+        false; return
+    fi;
+}
+
+# i.MX devices that have security firmware, package name changed
+# firmware-sentinel to firmware-ele in 6.1.55-2.2.0.  
+isELE()
+{
+    if [ "$LINUX_KER" \< "6.1.55" ]; then
+        false; return
+    else
+        true; return
+    fi
+}
 
 # Description: set version variables from the SCR
 # NOTE: meta-imx must be available before calling
@@ -257,7 +288,9 @@ function setupVar {
     LINUX_REL=$(echo $REV | cut -d ' ' -f4 | cut -d '-' -f2)
     TAG="lf-$LINUX_KER-$LINUX_REL"
 
-    if [ $LINUX_KER \< "6.1.36" ]; then
+# i.MX 93 A0 : 6.1.22-2.0.0 - last release supporting A0 
+# i.mx 93 A1 : 6.1.36-2.1.0 - first release supporting A1, future releases only A1
+    if [ "$LINUX_KER" \< 6.1.36 ]; then
 	    AHAB93="A0"
     else
 	    AHAB93="A1"
@@ -266,29 +299,37 @@ function setupVar {
     echo "LINUX_KER= " $LINUX_KER
     echo "LINUX_REL= " $LINUX_REL
     echo "TAG =      " $TAG
-    if [ $SOC == "93" ]; then
-        echo "AHA93=     " $AHAB93
-    fi
+    ismx93 &&  echo "AHA93=     " $AHAB93 
 
     FW_IMX_SCR=$(grep $FN_FW_IMX $SCR)
     FW_IMX=$(echo $FW_IMX_SCR | cut -d ' ' -f2)
     echo "FW_IMX =   " $FW_IMX
 
     if [[ $SOC == "8ulp"  ||  $SOC == "93" ]]; then
-	FW_UPOW=$(grep $FN_FW_POWER $SCR)
-	FWPOW=$(echo $FW_UPOW | cut -d ' ' -f2)
-	FW_SENT=$(grep $FN_FW_SENTINEL $SCR)
-	FWSENT=$(echo $FW_SENT | cut -d ' ' -f2)
-	FW_ELE=$(grep $FN_FW_ELE $SCR)
-	FWELE=$(echo $FW_ELE | cut -d ' ' -f2)
+	ismx8ulp && FW_UPOW=$(grep $FN_FW_POWER $SCR); \
+	FWPOW=$(echo $FW_UPOW | cut -d ' ' -f2) 
+
+    isELE && echo "ELE returned true"
+
+
+    if  isELE; then
+	    FW_ELE=$(grep $FN_FW_ELE $SCR); \
+	    FWELE=$(echo $FW_ELE | cut -d ' ' -f2); \
+       echo "FWELE  =   " $FWELE
+    else
+        FW_SENT=$(grep $FN_FW_SENTINEL $SCR); \
+	    FWSENT=$(echo $FW_SENT | cut -d ' ' -f2); \
+        echo "FWSENT =   " $FWSENT    
+    fi
+
 	FW_M33=$(grep $FN_M33DEMO $SCR)
 	FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
 
-	echo "FWPOW =    " $FWPOW
-	echo "FWSENT =   " $FWSENT
-	echo "FWELE  =   " $FWELE
+	ismx8ulp && echo "FWPOW =    " $FWPOW
 	echo "FWM33DEMO= " $FWM33DEMO
+    
     fi
+
     echo "FLASH_IMG= " $FLASH_IMG
     echo "UBOOT_DEFCONFIG= " $UBOOT_DEFCONFIG
     cd ..
@@ -329,6 +370,7 @@ function fw_fetch {
 
 # Description: 8ulp Sentinel firmware
 function sentinel_fetch {
+    echo "Creating Sentinel directory"
     mkdir -p sentinel
     cd sentinel
     curl -R -k -f $NXP_FILES/$FWSENT -o ./sent.bin
@@ -341,6 +383,7 @@ function sentinel_fetch {
 }
 # Description: 8ulp EdgeLockEnclave (ELE) firmware
 function ele_fetch {
+    echo "Creating ELE directory"
     mkdir -p ele
     cd ele
     curl -R -k -f $NXP_FILES/$FWELE -o ./ele.bin
@@ -394,11 +437,19 @@ function download {
     [ ! -d imx-mkimage ] && repo_get imx-mkimage
     [ ! -d fw-imx ] && fw_fetch
 
+    if ismx8ulp; then
+        if [ ! -d upower ]; then
+            upwr_fetch
+        fi
+    fi
+
     if [[ $SOC == '8ulp'  ||  $SOC == '93' ]]; then
-	[ ! -d upower ] && upwr_fetch
-	[ ! -d m33_demo ] && m33demo_fetch
-	[ ! -d sentinel ] && sentinel_fetch
-	[ ! -d ele ] && ele_fetch
+	    [ ! -d m33_demo ] && m33demo_fetch
+        if isELE; then
+	        [ ! -d ele ] && ele_fetch
+        else
+            [ ! -d sentinel ] && sentinel_fetch
+	    fi
     fi
 }
 
