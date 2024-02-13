@@ -205,11 +205,11 @@ function hostPkg {
 function repo_get_metaimx {
 
 	if [ -z "$RELEASE" ]; then
-	    README=$(wget -qO- $IMX_SW | grep README | head -1 | cut -d '"' -f6)
+        README=$(wget -qO- $IMX_SW | grep README | head -1 | cut -d '"' -f6 | sed 's/blob/raw/g')
         echo "README " $README
-	    BRANCH=$(wget -qO- $README |  awk '/\$: repo init/ {count++} count==3 {print $12}'|head -1|sed 's/\"<>pre//')
+	    BRANCH=$(wget -qO- $README |  awk '/\$: repo init/ && count++==1 {print $7}'|head -1|sed 's/\"<>pre//')
         echo "BRANCH " $BRANCH
-	    MANIFEST=$(wget -qO- $README |  awk '/\$: repo init/ {count++} count==3 {print $14}'|head -1)
+	    MANIFEST=$(wget -qO- $README |  awk '/\$: repo init/ && count++==1 {print $9}'|head -1)
 	    RELNAME=$(echo $BRANCH | cut -d '-' -f3)
         echo "RELNAME " $RELNAME
 	    RELVER=$(basename $MANIFEST .xml | cut -b 5-|sed 's/\.xml\"><pre//')
@@ -308,9 +308,6 @@ function setupVar {
     if [[ $SOC == "8ulp"  ||  $SOC == "93" ]]; then
 	ismx8ulp && FW_UPOW=$(grep $FN_FW_POWER $SCR); \
 	FWPOW=$(echo $FW_UPOW | cut -d ' ' -f2) 
-
-    isELE && echo "ELE returned true"
-
 
     if  isELE; then
 	    FW_ELE=$(grep $FN_FW_ELE $SCR); \
