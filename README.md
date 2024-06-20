@@ -7,7 +7,8 @@ Supported i.MX targets:
 - 8mnano [8MNANOD4-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-nano-applications-processor:8MNANOD4-EVK)  
 - 8mquad [MCIMX8M-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-8m-applications-processor:MCIMX8M-EVK)  
 - 8ulp [8ULPLPD4-EVK](https://www.nxp.com/design/design-center/development-boards/i-mx-evaluation-and-development-boards/i-mx-8ulp-evaluation-kit:MCIMX8ULP-EVK)  
-- mx93  
+- mx93
+- mx95 NXP EVK
 
 ## Example
 To create the boot loader for 8ULPLPD4-EVK release 6.1.55-2.2.0:  
