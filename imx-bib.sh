@@ -114,7 +114,7 @@ function systemManagerToolchain {
     if test ! -d arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi; then
         # Download toolchain and extract
         echo "Download toolchain"
-        wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
+        wget --no-check-certificate https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
         echo "Extract toolchain"
         tar -xf $TOOL_FILENAME
     else
