@@ -33,7 +33,7 @@
 #trap 'echo "\"${last_command}\" command failed with exit code $?."' EXIT
 
 #Script version
-SCR_VER="3.1"
+SCR_VER="3.2"
 
 # Define script colors
 bold=$(tput bold)
@@ -62,6 +62,8 @@ BDIR=$(pwd)
 
 VERULP=""
 VERULPtmp=""
+YOCTO_RELEASE_NAME=""
+NXP_RELEASE=""
 
 # Description: print help message and usage
 function usage {
@@ -92,6 +94,7 @@ function remove_all {
     rm -fr imx-mkimage
     rm -fr m33_demo
     rm -fr meta-imx
+    rm -fr imx-manifest
     rm -fr sentinel ele
     rm -fr uboot-imx
     rm -fr upower
@@ -248,21 +251,28 @@ function hostPkg {
 
 }
 
+# Description: retrieve yocto name and release version
+function bspRelease() {
+    [ ! -d imx-manifest ] && git clone $REPO_GIT/imx-manifest
+
+    pushd imx-manifest
+
+    # yocto release name
+    YOCTO_RELEASE_NAME=$(git status | awk '/On branch/ {print}' | awk '{print $3}' | awk -F - '{print $3}')
+
+    # NXP release: LinuxMajor.LinuxMinor.LinuxPatch-NXPMajor.NXPMinor.NXPPatch
+    NXP_RELEASE=$(awk 'NR==2 {print $0}' ChangeLog)
+    
+    popd
+}
+
 # Description: clone meta-imx
 function repo_get_metaimx {
 
+    # if option -b user provided specific version, otherwise imx-manifest has latest version
     if [ -z "$RELEASE" ]; then
-        README=$(wget -qO- $IMX_SW | grep README | head -1 | cut -d '"' -f6 | sed 's/blob/raw/g')
-        echo "README " $README
-        BRANCH=$(wget -qO- $README | awk '/\$: repo init/ && count++==1 {print $7}' | head -1 | sed 's/\"<>pre//')
-        echo "BRANCH " $BRANCH
-        MANIFEST=$(wget -qO- $README | awk '/\$: repo init/ && count++==1 {print $9}' | head -1)
-        RELNAME=$(echo $BRANCH | cut -d '-' -f3)
-        echo "RELNAME " $RELNAME
-        RELVER=$(basename $MANIFEST .xml | cut -b 5- | sed 's/\.xml\"><pre//')
-        echo "RELVER " $RELVER
-        RELEASE=$RELNAME-$RELVER
-        echo "RELEASE " $RELEASE
+        bspRelease
+        RELEASE=$YOCTO_RELEASE_NAME-$NXP_RELEASE
     fi
     #exit
     echo "git clone $REPO_GIT/meta-imx -b $RELEASE "
