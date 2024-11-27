@@ -2,7 +2,7 @@
 
 # imx-bib.sh : i.MX Boot Image Builder
 # 05/03/2022 - Curtis Wald curtis.wald@nxp.com
-#              concept from Robert Mcewan
+#              concept from Robert McEwan
 
 # Description: Build boot image
 # i.MX application processors supported: 8mq 8mm, 8mn, 8mp, 8ulp
@@ -192,7 +192,7 @@ while getopts ${optstring} arg; do
         ;;
     d)
         V=1
-        unset MFLAG
+        MFLAG="V=1"
         ;;
     r)
         remove_all
