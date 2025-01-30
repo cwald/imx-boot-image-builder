@@ -78,6 +78,7 @@ function usage {
     echo '   -c           make clean then make'
     echo '   -r           remove all'
     echo '   -d           enable script debug '
+    echo '   -a           build on aarch64 host'
     echo '   -h           Help message'
     echo ''
     echo "${bold} Example 8ulp A1:    ./$(basename $0) -p 8ulp ${clr}"
@@ -105,8 +106,14 @@ function remove_all {
 }
 
 function systemManagerToolchain {
-    
-    TOOL_FILENAME="arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz"
+   
+    if [ -n "$AARCH64" ]; then
+        TOOL_FILENAME="arm-gnu-toolchain-12.3.rel1-aarch64-arm-none-eabi.tar.xz"
+	ARCH=aarch64
+    else
+	TOOL_FILENAME="arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz"
+	ARCH=x86_64
+    fi
     TOOL_DIR="tools"
 
     # check for tools directory, create if needed    
@@ -114,11 +121,12 @@ function systemManagerToolchain {
 
     cd $TOOL_DIR
 
-    if test ! -d arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi; then
+    if test ! -d arm-gnu-toolchain-12.3.rel1-$ARCH-arm-none-eabi; then
         # Download toolchain and extract
         echo "Download toolchain"
-        wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
-        echo "Extract toolchain"
+	echo $TOOL_FILENAME
+	wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-$ARCH-arm-none-eabi.tar.xz
+	echo "Extract toolchain"
         tar -xf $TOOL_FILENAME
     else
         echo "System Manager toolchain found in tools directory"
@@ -140,7 +148,7 @@ if [[ ${#} -eq 0 ]]; then
 fi
 
 # Define list of arguments expected in the input
-optstring=":mhrctdp:b:w:"
+optstring=":mhrctdap:b:w:"
 
 while getopts ${optstring} arg; do
     case ${arg} in
@@ -205,6 +213,9 @@ while getopts ${optstring} arg; do
         systemManagerToolchain
         exit
         ;;
+    a)
+	AARCH64=y
+	;;
     h)
         usage
         ;;
