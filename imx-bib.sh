@@ -33,7 +33,7 @@
 #trap 'echo "\"${last_command}\" command failed with exit code $?."' EXIT
 
 #Script version
-SCR_VER="3.2"
+SCR_VER="3.3"
 
 # Define script colors
 bold=$(tput bold)
@@ -139,6 +139,9 @@ function systemManagerToolchain {
 
     [ ! -f /usr/bin/cppcheck ] && 
         sudo apt-get -y install cppcheck
+
+    [ ! -f /usr/bin/cert-to-efi-sig-list ] &&
+	sudo apt-get -y install efitools
 
 }
 
@@ -696,7 +699,7 @@ export TOOLS=$BDIR/tools
 # setup variables for this release using meta-imx/SCR-### versions
 setupVar
 
-# Download i.mx software
+# Download i.MX software
 download
 
 # Based on i.MX chip, setup firmware files
