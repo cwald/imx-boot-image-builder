@@ -5,32 +5,9 @@
 #              concept from Robert McEwan
 
 # Description: Build boot image
-# i.MX application processors supported: 8mq 8mm, 8mn, 8mp, 8ulp
+# i.MX application processors supported: 8mq 8mm, 8mn, 8mp, 8ulp, 93, 95
 # Usage example: ./imx-bib.sh -p 8ulp
 
-# Operation:
-
-# All required repositories and binary files are downloaded. If this
-# operation has already been performed then subsequent script runs
-# will skip downloading again. Run the script with the -r to delete all
-# if needing to start from scratch.
-
-# Once downloaded files are available, there are three build functions
-# called: build_uboot, build_atf, and build_image. When build_image
-# completes the flash.bin file is found at the same dir level as the
-# script. For example if 8ulp was the build, then 8ulp_evk_flash.bin
-# is created.
-
-# For each different i.MX chip, u-boot must be re-built. Provide the
-# -c script argument to clean and then build if the downloads have
-# completed.  Example: imx-bib.sh -p 8mp -c
-
-# exit script on any error
-#set -e
-# keep track of the last executed command
-#trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
-# echo an error message before exiting
-#trap 'echo "\"${last_command}\" command failed with exit code $?."' EXIT
 
 #Script version
 SCR_VER="3.3"
@@ -618,6 +595,7 @@ function build_atf {
 
 # Description: All dependencies completed, build flash.bin
 build_image() {
+
     # Build the boot image
     echo ${cyan}Building Boot Image${clr}
     [ -n "$V" ] && set -x
@@ -715,5 +693,9 @@ fi
 
 build_image
 
-echo "${yellow}Done ${SOC_FLASH_NAME} ${clr}"
+if [ -f ${SOC_FLASH_NAME} ]; then
+    echo "${yellow}Done ${SOC_FLASH_NAME} ${clr}"
+else
+    echo "${red}ERROR ${SOC_FLASH_NAME} failed ${clr}"
+fi
 exit 0
