@@ -10,7 +10,7 @@
 
 
 #Script version
-SCR_VER="3.3"
+SCR_VER="3.4"
 
 # Define script colors
 bold=$(tput bold)
@@ -39,8 +39,14 @@ BDIR=$(pwd)
 
 VERULP=""
 VERULPtmp=""
+IMX95VER="B0"
+IMX95VERTMP=""
 YOCTO_RELEASE_NAME=""
 NXP_RELEASE=""
+
+# System Manager TOOLCHAIN Version, 6.12.20-2.0.0 Q2'2025
+TC_VERSION=14.2.rel1
+
 
 # Description: print help message and usage
 function usage {
@@ -51,11 +57,13 @@ function usage {
                       BSP Release in the form yocto_release-nxp_version
 		      example: -b hardknott-5.10.72-2.2.0'
     echo '   -w A0|A1|A2  which 8ULP version, default A1. Note: A2 uses A1.bin'
+    echo '   -w A1|B0     95 version. Q2 2025 6.12.20-2.0.0 last support of A1'
     echo '   -m           EVK with ddr4 memory. Supported: 8mn, 8mm, 8mp. If no -m, EVK with LPDDR4'
     echo '   -c           make clean then make'
     echo '   -r           remove all'
     echo '   -d           enable script debug '
     echo '   -a           build on aarch64 host'
+    echo '   -t           setup toolchain for system manager. NOTE: if option -a used, must preceed -t'
     echo '   -h           Help message'
     echo ''
     echo "${bold} Example 8ulp A1:    ./$(basename $0) -p 8ulp ${clr}"
@@ -84,11 +92,11 @@ function remove_all {
 
 function systemManagerToolchain {
    
-    if [ -n "$AARCH64" ]; then
-        TOOL_FILENAME="arm-gnu-toolchain-12.3.rel1-aarch64-arm-none-eabi.tar.xz"
+    if [[ $AARCH64 == 'y' ]]; then
+        TOOL_FILENAME="arm-gnu-toolchain-"$TC_VERSION"-aarch64-arm-none-eabi.tar.xz"
 	ARCH=aarch64
     else
-	TOOL_FILENAME="arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz"
+	TOOL_FILENAME="arm-gnu-toolchain-"$TC_VERSION"-x86_64-arm-none-eabi.tar.xz"
 	ARCH=x86_64
     fi
     TOOL_DIR="tools"
@@ -98,11 +106,11 @@ function systemManagerToolchain {
 
     cd $TOOL_DIR
 
-    if test ! -d arm-gnu-toolchain-12.3.rel1-$ARCH-arm-none-eabi; then
+    if test ! -d arm-gnu-toolchain-$TC_VERSION-$ARCH-arm-none-eabi; then
         # Download toolchain and extract
         echo "Download toolchain"
 	echo $TOOL_FILENAME
-	wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-$ARCH-arm-none-eabi.tar.xz
+	wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/$TC_VERSION/binrel/$TOOL_FILENAME
 	echo "Extract toolchain"
         tar -xf $TOOL_FILENAME
     else
@@ -133,10 +141,17 @@ optstring=":mhrctdap:b:w:"
 while getopts ${optstring} arg; do
     case ${arg} in
     w)
-        VERULPtmp="${OPTARG}"
-        VERULP=$(echo ${VERULPtmp} | tr "[:lower:]" "[:upper:]")
-        echo "VERULP = " $VERULP
-        SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
+        if [[ $SOC == "8ulp" ]]; then
+            VERULPtmp="${OPTARG}"
+            VERULP=$(echo ${VERULPtmp} | tr "[:lower:]" "[:upper:]")
+            echo "VERULP = " $VERULP
+            SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
+        elif [[ $SOC == "95" ]]; then
+	    IMX95VERTMP="${OPTARG}"
+	    IMX95VER=$(echo ${IMX95VERTMP} | tr "[:lower:]" "[:upper:]")
+	    echo "IMX95VER = " $IMX95VER
+	    SOC_FLASH_NAME=$SOC"_"$IMX95VER"_evk_flash.bin"
+	fi
         ;;
     p)
         SOC="${OPTARG}"
@@ -155,7 +170,7 @@ while getopts ${optstring} arg; do
             SOC_FLASH_NAME="imx"$SOC"_11x11""_evk_flash.bin"
         elif [[ $SOC == "95" ]]; then
             MKIMG_DIR=iMX95
-            FLASH_IMG=flash_lpboot_sm_all
+            FLASH_IMG=flash_all
             UBOOT_DEFCONFIG="imx95_19x19_evk_defconfig"
             SOC_FLASH_NAME="imx"$SOC"_19x19_evk_flash.bin"
         else
@@ -194,7 +209,7 @@ while getopts ${optstring} arg; do
         exit
         ;;
     a)
-	AARCH64=y
+	AARCH64='y'
 	;;
     h)
         usage
@@ -624,7 +639,7 @@ build_image() {
         make SOC=iMX93 REV=$AHAB93 $FLASH_IMG
         cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     elif [[ $SOC == "95" ]]; then
-        make SOC=iMX95 $FLASH_IMG LPDDR_TYPE=lpddr5 OEI=YES
+        make SOC=iMX95 REV=$IMX95VER $FLASH_IMG LPDDR_TYPE=lpddr5 OEI=YES
 	cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     else
         make SOC=iMX$SOCU $FLASH_IMG
@@ -638,13 +653,22 @@ build_image() {
 # iMX95 OEI
 function build_imxoei {
     echo ${cyan}"Building imx-oei"${clr}
-    [ -n "$V" ] && set +x
-    cd imx-oei
-    make V=${V} board=mx95lp5 oei=ddr DEBUG=1
-    make V=${V} board=mx95lp5 oei=tcm DEBUG=1
-    cp build/mx95lp5/ddr/oei-m33-ddr.bin ../imx-mkimage/iMX95/
-    cp build/mx95lp5/tcm/oei-m33-tcm.bin ../imx-mkimage/iMX95/
+    if [[ $IMX95VER == "A1" ]]; then
+	DDRCFG=XIMX95LPD5EVK19_6400mbps_train_timing_a1
+	IMX95VEROEI="A0"
+    else
+	IMX95VEROEI="B0"
+    fi
+
     [ -n "$V" ] && set -x
+    cd imx-oei
+    [ -n "$CLEAN" ] && make clean really-clean
+    make V=${V} board=mx95lp5 r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=ddr DEBUG=1
+    cp build/mx95lp5/ddr/oei-m33-ddr.bin ../imx-mkimage/iMX95/
+    [ -n "$CLEAN" ] && make clean really-clean
+    make V=${V} board=mx95lp5 r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=tcm DEBUG=1
+    cp build/mx95lp5/tcm/oei-m33-tcm.bin ../imx-mkimage/iMX95/
+    [ -n "$V" ] && set +x
     echo ${green}imx-oei build complete${clr}
     cd ..
 }
