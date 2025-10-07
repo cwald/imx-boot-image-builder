@@ -10,7 +10,7 @@
 
 
 #Script version
-SCR_VER="3.4"
+SCR_VER="3.5"
 
 # Define script colors
 bold=$(tput bold)
@@ -52,7 +52,7 @@ TC_VERSION=14.2.rel1
 function usage {
     echo "Usage: $(basename $0) [-h] -p <soc> [-b] [-w <A0|A1>] [-c]" 2>&1
     echo 'Create bootimage. Version ' ${SCR_VER}
-    echo '   -p soc       mandatory: options: 8ulp 8mm 8mn 8mp 8mq 93 95'
+    echo '   -p soc       mandatory: 8ulp 8ulp9 8mm 8mn 8mp 8mq 93 95'
     echo '   -b           optional: latest if not specified
                       BSP Release in the form yocto_release-nxp_version
 		      example: -b hardknott-5.10.72-2.2.0'
@@ -141,7 +141,7 @@ optstring=":mhrctdap:b:w:"
 while getopts ${optstring} arg; do
     case ${arg} in
     w)
-        if [[ $SOC == "8ulp" ]]; then
+        if [[ $SOC == "8ulp" || $SOC == "8ulp9" ]]; then
             VERULPtmp="${OPTARG}"
             VERULP=$(echo ${VERULPtmp} | tr "[:lower:]" "[:upper:]")
             echo "VERULP = " $VERULP
@@ -162,6 +162,12 @@ while getopts ${optstring} arg; do
             FLASH_IMG=flash_singleboot_m33
             VERULP="A2"
             UBOOT_DEFCONFIG="imx8ulp_evk_defconfig"
+            SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
+        elif [[ $SOC == "8ulp9" ]]; then
+            MKIMG_DIR=iMX8ULP
+            FLASH_IMG=flash_singleboot_m33
+            VERULP="A2"
+            UBOOT_DEFCONFIG="imx8ulp_9x9_evk_defconfig"
             SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
         elif [[ $SOC == "93" ]]; then
             MKIMG_DIR=iMX93
@@ -333,6 +339,15 @@ ismx8ulp() {
         return
     fi
 }
+ismx8ulp9() {
+    if [ $SOC == "8ulp9" ]; then
+        true
+        return
+    else
+        false
+        return
+    fi
+}
 
 ismx95() {
     if [ $SOC == "95" ]; then
@@ -383,8 +398,10 @@ function setupVar {
     FW_IMX=$(echo $FW_IMX_SCR | cut -d ' ' -f2)
     echo "FW_IMX =   " $FW_IMX
 
-    if [[ $SOC == "8ulp" || $SOC == "93" || $SOC == '95' ]]; then
+    if [[ $SOC == "8ulp" || $SOC == "8ulp9" || $SOC == "93" || $SOC == '95' ]]; then
         ismx8ulp && FW_UPOW=$(grep $FN_FW_POWER $SCR)
+        ismx8ulp9 && FW_UPOW=$(grep $FN_FW_POWER $SCR)
+
         FWPOW=$(echo $FW_UPOW | cut -d ' ' -f2)
 
         if isELE; then
@@ -402,6 +419,11 @@ function setupVar {
             FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
             echo "FWM33DEMO= " $FWM33DEMO
         fi
+        if ismx8ulp9; then
+            FW_M33=$(grep $FN_8ULPM33DEMO $SCR)
+            FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
+            echo "FWM33DEMO= " $FWM33DEMO
+        fi
         if ismx93; then
             FW_M33=$(grep $FN_93M33DEMO $SCR)
             FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
@@ -414,6 +436,7 @@ function setupVar {
         fi
 
         ismx8ulp && echo "FWPOW =    " $FWPOW
+        ismx8ulp9 && echo "FWPOW =    " $FWPOW
 
     fi
 
@@ -436,7 +459,7 @@ function fw_install {
     if [[ ! -f imx-mkimage/$MKIMG_DIR/lpddr4_pmu_train_1d_dmem.bin ]]; then
         echo "Installing ddr files in imx-mkimage/$MKIMG_DIR"
         cp fw-imx/firmware-imx*/firmware/ddr/synopsys/*.bin imx-mkimage/$MKIMG_DIR
-        [ $SOC != "8ulp" ] && cp fw-imx/firmware-imx*/firmware/hdmi/cadence/signed_hdmi_imx8m.bin imx-mkimage/$MKIMG_DIR
+        [[ $SOC != "8ulp" || $SOC != "8ulp9" ]] && cp fw-imx/firmware-imx*/firmware/hdmi/cadence/signed_hdmi_imx8m.bin imx-mkimage/$MKIMG_DIR
 
     fi
 }
@@ -528,6 +551,10 @@ function m33demo_fetch {
         cd imx8ulp-m33-demo-*
         cp imx8ulp_m33_TCM_rpmsg_lite_str_echo_rtos.bin ../../imx-mkimage/iMX8ULP/m33_image.bin
     fi
+    if ismx8ulp9; then
+        cd imx8ulp-m33-demo-*
+        cp imx8ulp_m33_TCM_rpmsg_lite_str_echo_rtos.bin ../../imx-mkimage/iMX8ULP/m33_image.bin
+    fi
     if ismx93; then
         cd imx93-m33-demo-*
         cp imx93_m33_TCM_rpmsg_lite_str_echo_rtos.bin ../../imx-mkimage/iMX8ULP/m33_image.bin
@@ -549,8 +576,13 @@ function download {
             upwr_fetch
         fi
     fi
+    if ismx8ulp9; then
+        if [ ! -d upower ]; then
+            upwr_fetch
+        fi
+    fi
 
-    if [[ $SOC == '8ulp' || $SOC == '93' ]]; then
+    if [[ $SOC == '8ulp' || $SOC == '8ulp9' || $SOC == '93' ]]; then
         [ ! -d m33_demo ] && m33demo_fetch
         if isELE; then
             [ ! -d ele ] && ele_fetch
@@ -587,7 +619,11 @@ function build_uboot {
     cp ./u-boot-nodtb.bin ../imx-mkimage/$MKIMG_DIR/
     cp ./u-boot.bin ../imx-mkimage/$MKIMG_DIR/
     cp ./spl/u-boot-spl.bin ../imx-mkimage/$MKIMG_DIR/
-    cp ./arch/arm/dts/imx$SOC*-evk.dtb ../imx-mkimage/$MKIMG_DIR/
+    if [[ $SOC == "8ulp9" ]]; then
+	cp ./arch/arm/dts/imx8ulp-9x9-evk.dtb ../imx-mkimage/$MKIMG_DIR/
+    else
+	cp ./arch/arm/dts/imx$SOC*-evk.dtb ../imx-mkimage/$MKIMG_DIR/
+    fi
 
     cd ..
     [ -n "$V" ] && set +x
@@ -599,11 +635,18 @@ function build_uboot {
 function build_atf {
     echo ${cyan}Building ATF Image${clr}
     cd imx-atf/
+    if ismx8ulp9; then
+	STORE="8ulp9"
+	SOC="8ulp"
+    fi
     [ -n "$CLEAN" ] && make clean PLAT=imx$SOC
     [ -n "$V" ] && set -x
     make ${MFLAG} PLAT=imx$SOC bl31
     [ -n "$V" ] && set +x
     cp ./build/imx$SOC/release/bl31.bin ../imx-mkimage/$MKIMG_DIR
+
+    [[ $STORE == "8ulp9" ]] && SOC="8ulp9"
+
     cd ..
     echo ${green}ATF build complete${clr}
 }
@@ -616,7 +659,7 @@ build_image() {
     [ -n "$V" ] && set -x
 
     # set uPower FW version if 8ULP
-    if [[ $SOC == "8ulp" ]]; then
+    if [[ $SOC == "8ulp" || $SOC == "8ulp9"  ]]; then
 
         pushd imx-mkimage/iMX8ULP
 
@@ -631,7 +674,15 @@ build_image() {
 
     cd imx-mkimage/
     pwd
+
+    # 8ulp9 uses 8ulp, override SOCU and restore when finished
+    if ismx8ulp9; then
+	STORE=$SOCU
+	SOCU="8ULP"
+    fi
+
     [ -n "$CLEAN" ] && make SOC=iMX$SOCU clean
+
     if [[ $SOC == "8ulp" ]]; then
         make SOC=iMX$SOCU REV=$VERULP $FLASH_IMG
         cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
@@ -645,6 +696,9 @@ build_image() {
         make SOC=iMX$SOCU $FLASH_IMG
         cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     fi
+
+    [[ $STORE == "8ULP9" ]] && SOCU="8ULP9"
+
     cd ..
     [ -n "$V" ] && set +x
     #    echo ${green}Boot Image success!${clr}
