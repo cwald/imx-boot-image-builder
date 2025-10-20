@@ -711,6 +711,7 @@ function build_imxoei {
 	DDRCFG=XIMX95LPD5EVK19_6400mbps_train_timing_a1
 	IMX95VEROEI="A0"
     else
+	DDRCFG=MIMX95_LPDDR5_EVK_19X19_6400MTS_FW2024.09_timing
 	IMX95VEROEI="B0"
     fi
 
