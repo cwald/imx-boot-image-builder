@@ -10,7 +10,7 @@
 
 
 #Script version
-SCR_VER="3.5"
+SCR_VER="4.0"
 
 # Define script colors
 bold=$(tput bold)
@@ -52,7 +52,7 @@ TC_VERSION=14.2.rel1
 function usage {
     echo "Usage: $(basename $0) [-h] -p <soc> [-b] [-w <A0|A1>] [-c]" 2>&1
     echo 'Create bootimage. Version ' ${SCR_VER}
-    echo '   -p soc       mandatory: 8ulp 8ulp9 8mm 8mn 8mp 8mq 93 95'
+    echo '   -p soc       mandatory: 8ulp 8ulp9 8mm 8mn 8mp 8mq 93 95 95frdm'
     echo '   -b           optional: latest if not specified
                       BSP Release in the form yocto_release-nxp_version
 		      example: -b hardknott-5.10.72-2.2.0'
@@ -94,10 +94,10 @@ function systemManagerToolchain {
    
     if [[ $AARCH64 == 'y' ]]; then
         TOOL_FILENAME="arm-gnu-toolchain-"$TC_VERSION"-aarch64-arm-none-eabi.tar.xz"
-	ARCH=aarch64
+	    ARCH=aarch64
     else
-	TOOL_FILENAME="arm-gnu-toolchain-"$TC_VERSION"-x86_64-arm-none-eabi.tar.xz"
-	ARCH=x86_64
+	    TOOL_FILENAME="arm-gnu-toolchain-"$TC_VERSION"-x86_64-arm-none-eabi.tar.xz"
+	    ARCH=x86_64
     fi
     TOOL_DIR="tools"
 
@@ -147,10 +147,15 @@ while getopts ${optstring} arg; do
             echo "VERULP = " $VERULP
             SOC_FLASH_NAME=$SOC"_"$VERULP"_evk_flash.bin"
         elif [[ $SOC == "95" ]]; then
-	    IMX95VERTMP="${OPTARG}"
-	    IMX95VER=$(echo ${IMX95VERTMP} | tr "[:lower:]" "[:upper:]")
-	    echo "IMX95VER = " $IMX95VER
-	    SOC_FLASH_NAME=$SOC"_"$IMX95VER"_evk_flash.bin"
+	        IMX95VERTMP="${OPTARG}"
+	        IMX95VER=$(echo ${IMX95VERTMP} | tr "[:lower:]" "[:upper:]")
+	        echo "IMX95VER = " $IMX95VER
+	        SOC_FLASH_NAME=$SOC"_"$IMX95VER"_evk_flash.bin"
+        elif [[ $SOC == "95frdm" ]]; then
+            IMX95VERTMP="${OPTARG}"
+	        IMX95VER=$(echo ${IMX95VERTMP} | tr "[:lower:]" "[:upper:]")
+	        echo "IMX95VER = " $IMX95VER
+            SOC_FLASH_NAME="imx"$SOC"_15x15_frdm_flash.bin"
 	fi
         ;;
     p)
@@ -179,6 +184,11 @@ while getopts ${optstring} arg; do
             FLASH_IMG=flash_all
             UBOOT_DEFCONFIG="imx95_19x19_evk_defconfig"
             SOC_FLASH_NAME="imx"$SOC"_19x19_evk_flash.bin"
+        elif [[ $SOC == "95frdm" ]]; then
+            MKIMG_DIR=iMX95
+            FLASH_IMG=flash_all
+            UBOOT_DEFCONFIG="imx95_15x15_frdm_defconfig"
+            SOC_FLASH_NAME="imx"$SOC"_15x15_frdm_flash.bin"
         else
             MKIMG_DIR=iMX8M
             FLASH_IMG=flash_evk
@@ -257,7 +267,7 @@ function hostPkg {
     [ ! -f /usr/include/zlib.h ] &&
         sudo apt install -y zlib1g-dev
 
-    if ismx95; then
+    if [[ ismx95 || ismx95frdm ]]; then
         systemManagerToolchain
     fi
 
@@ -358,6 +368,25 @@ ismx95() {
         return
     fi
 }
+ismx95frdm() {
+    if [ $SOC == "95frdm" ]; then
+        true
+        return
+    else
+        false
+        return
+    fi
+}
+
+hasELE() {
+    if [[ $SOC == "8ulp" || $SOC == "8ulp9" || $SOC == "93" || $SOC == '95' || $SOC == '95frdm' ]]; then
+        true
+        return
+    else
+        false
+        return
+    fi
+}
 
 # i.MX devices that have security firmware, package name changed
 # firmware-sentinel to firmware-ele in 6.1.55-2.2.0.
@@ -398,7 +427,7 @@ function setupVar {
     FW_IMX=$(echo $FW_IMX_SCR | cut -d ' ' -f2)
     echo "FW_IMX =   " $FW_IMX
 
-    if [[ $SOC == "8ulp" || $SOC == "8ulp9" || $SOC == "93" || $SOC == '95' ]]; then
+    if hasELE ; then
         ismx8ulp && FW_UPOW=$(grep $FN_FW_POWER $SCR)
         ismx8ulp9 && FW_UPOW=$(grep $FN_FW_POWER $SCR)
 
@@ -429,7 +458,7 @@ function setupVar {
             FWM33DEMO=$(echo $FW_M33 | cut -d ' ' -f2)
             echo "FWM33DEMO= " $FWM33DEMO
         fi
-        if ismx95; then
+        if [[ $SOC == "95" || $SOC == "95frdm" ]]; then
             FW_M7=$(grep $FN_95M7DEMO $SCR)
             FWM7DEMO=$(echo $FW_M7 | cut -d ' ' -f2)
             echo "FWM7DEMO=  " $FWM7DEMO
@@ -529,6 +558,8 @@ function upwr_fetch {
 # Description: mx95 M7 Demo
 function m7demo_fetch {
 
+    echo "enter m7demo_fetch $NXP_FILES/$FWM7DEMO"
+    [ -n "$V" ] && set -x
     mkdir m7_demo
     cd m7_demo
     curl -R -k -f $NXP_FILES/$FWM7DEMO -o demo.bin
@@ -537,6 +568,7 @@ function m7demo_fetch {
     cd imx95-m7-demo-*
     cp imx95-19x19-evk_m7_TCM_rpmsg_lite_str_echo_rtos.bin ../../imx-mkimage/iMX95/m7_image.bin
     cd ../..
+    [ -n "$V" ] && set +x
 }
 
 # Description: 8ulp M33 Demo
@@ -591,7 +623,7 @@ function download {
         fi
     fi
 
-    if [[ $SOC == '95' ]]; then
+    if [[ $SOC == '95' || $SOC == '95frdm' ]]; then
         [ ! -d m7_demo ] && m7demo_fetch
         if isELE; then
             [ ! -d ele ] && ele_fetch
@@ -620,7 +652,9 @@ function build_uboot {
     cp ./u-boot.bin ../imx-mkimage/$MKIMG_DIR/
     cp ./spl/u-boot-spl.bin ../imx-mkimage/$MKIMG_DIR/
     if [[ $SOC == "8ulp9" ]]; then
-	cp ./arch/arm/dts/imx8ulp-9x9-evk.dtb ../imx-mkimage/$MKIMG_DIR/
+	    cp ./arch/arm/dts/imx8ulp-9x9-evk.dtb ../imx-mkimage/$MKIMG_DIR/
+    elif [[ $SOC == "95frdm" ]]; then
+        cp ./arch/arm/dts/imx95-15x15-frdm.dtb ../imx-mkimage/$MKIMG_DIR/
     else
 	cp ./arch/arm/dts/imx$SOC*-evk.dtb ../imx-mkimage/$MKIMG_DIR/
     fi
@@ -636,9 +670,14 @@ function build_atf {
     echo ${cyan}Building ATF Image${clr}
     cd imx-atf/
     if ismx8ulp9; then
-	STORE="8ulp9"
-	SOC="8ulp"
+	    STORE="8ulp9"
+	    SOC="8ulp"
     fi
+    if ismx95frdm; then
+        STORE="95frdm"
+        SOC="95"
+    fi
+
     [ -n "$CLEAN" ] && make clean PLAT=imx$SOC
     [ -n "$V" ] && set -x
     make ${MFLAG} PLAT=imx$SOC bl31
@@ -646,6 +685,7 @@ function build_atf {
     cp ./build/imx$SOC/release/bl31.bin ../imx-mkimage/$MKIMG_DIR
 
     [[ $STORE == "8ulp9" ]] && SOC="8ulp9"
+    [[ $STORE == "95frdm" ]] && SOC="95frdm"
 
     cd ..
     echo ${green}ATF build complete${clr}
@@ -685,18 +725,19 @@ build_image() {
 
     if [[ $SOC == "8ulp" ]]; then
         make SOC=iMX$SOCU REV=$VERULP $FLASH_IMG
-        cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     elif [[ $SOC == "93" ]]; then
         make SOC=iMX93 REV=$AHAB93 $FLASH_IMG
-        cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     elif [[ $SOC == "95" ]]; then
-        make SOC=iMX95 REV=$IMX95VER $FLASH_IMG LPDDR_TYPE=lpddr5 OEI=YES
-	cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
+        make SOC=iMX95 REV=$IMX95VER LPDDR_TYPE=lpddr5 OEI=YES $FLASH_IMG
+    elif [[ $SOC == "95frdm" ]]; then
+        make SOC=iMX95 REV=$IMX95VER LPDDR_TYPE=lpddr4x OEI=YES $FLASH_IMG
     else
         make SOC=iMX$SOCU $FLASH_IMG
-        cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
     fi
-
+    
+    # copy flash.bin to top directory using build target.bin
+    cp ./$MKIMG_DIR/flash.bin ../${SOC_FLASH_NAME}
+    
     [[ $STORE == "8ULP9" ]] && SOCU="8ULP9"
 
     cd ..
@@ -706,23 +747,38 @@ build_image() {
 
 # iMX95 OEI
 function build_imxoei {
+   
     echo ${cyan}"Building imx-oei"${clr}
-    if [[ $IMX95VER == "A1" ]]; then
-	DDRCFG=XIMX95LPD5EVK19_6400mbps_train_timing_a1
-	IMX95VEROEI="A0"
-    else
-	DDRCFG=MIMX95_LPDDR5_EVK_19X19_6400MTS_FW2024.09_timing
-	IMX95VEROEI="B0"
+
+    if [[ $SOC == "95" ]]; then
+        BOARD_TGT="mx95lp5"
+        if [[ $IMX95VER == "A1" ]]; then
+	        DDRCFG=XIMX95LPD5EVK19_6400mbps_train_timing_a1
+	        IMX95VEROEI="A0"
+        else
+	        DDRCFG=MIMX95_LPDDR5_EVK_19X19_6400MTS_FW2024.09_timing
+	        IMX95VEROEI="B0"
+        fi
+    elif [[ $SOC == "95frdm" ]]; then 
+        BOARD_TGT="mx95lp4x-15"
+        if [[ $IMX95VER == "A1" ]]; then
+            DDRCFG=XIMX95LPD4XCPU15_4000mbps_train_timing_a1
+	        IMX95VEROEI="A0"
+        else
+	        DDRCFG=MIMX95_LPDDR4X_EVK_15X15_4000MTS_FW2024.09_timing
+	        IMX95VEROEI="B0"
+        fi
     fi
 
     [ -n "$V" ] && set -x
     cd imx-oei
     [ -n "$CLEAN" ] && make clean really-clean
-    make V=${V} board=mx95lp5 r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=ddr DEBUG=1
-    cp build/mx95lp5/ddr/oei-m33-ddr.bin ../imx-mkimage/iMX95/
+    
+    make V=${V} board=$BOARD_TGT r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=ddr DEBUG=1
+    cp build/$BOARD_TGT/ddr/oei-m33-ddr.bin ../imx-mkimage/iMX95/
     [ -n "$CLEAN" ] && make clean really-clean
-    make V=${V} board=mx95lp5 r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=tcm DEBUG=1
-    cp build/mx95lp5/tcm/oei-m33-tcm.bin ../imx-mkimage/iMX95/
+    make V=${V} board=$BOARD_TGT r=$IMX95VEROEI DDR_CONFIG=$DDRCFG oei=tcm DEBUG=1
+    cp build/$BOARD_TGT/tcm/oei-m33-tcm.bin ../imx-mkimage/iMX95/
     [ -n "$V" ] && set +x
     echo ${green}imx-oei build complete${clr}
     cd ..
@@ -731,11 +787,12 @@ function build_imxoei {
 # iMX95 SystemManager
 function build_sm {
     echo ${cyan}Building imx-sm${clr}
-    [ -n "$V" ] && set +x
-    cd imx-sm
-    make V=${V} -j `nproc` config=mx95evk
-    cp build/mx95evk/m33_image.bin ../imx-mkimage/iMX95/
     [ -n "$V" ] && set -x
+    echo `pwd`
+    cd imx-sm
+    make V=${V} -j `nproc` config=mx95evk  M=2
+    cp build/mx95evk/m33_image.bin ../imx-mkimage/iMX95/
+    [ -n "$V" ] && set +x
     echo ${green}imx-sm complete${clr}
     cd ..
 }
@@ -765,7 +822,7 @@ fw_install
 # Call functions to build
 build_uboot
 build_atf
-if ismx95; then
+if [[ ismx95 || ismx95frdm ]]; then
     build_sm
     build_imxoei
 fi
