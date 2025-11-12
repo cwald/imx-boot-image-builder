@@ -26,7 +26,7 @@ i.MX 93 A0 EVK (note 6.1.36-2.1.0 and later support A1 only)
 ```
 Usage: imx-bib.sh [-h] -p <soc> [-b] [-w <A0|A1>] [-c] 
 Create bootimage. Version  3.0 
-   -p soc       mandatory: options: 8ulp 8ulp9 8mm 8mn 8mp 8mq 93 95
+   -p soc       mandatory: options: 8ulp 8ulp9 8mm 8mn 8mp 8mq 93 95 95frdm
    -b           optional: latest if not specified  
                       BSP Release in the form yocto_release-nxp_version  
 		      example: -b hardknott-5.10.72-2.2.0  
