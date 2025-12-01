@@ -267,7 +267,7 @@ function hostPkg {
     [ ! -f /usr/include/zlib.h ] &&
         sudo apt install -y zlib1g-dev
 
-    if [[ ismx95 || ismx95frdm ]]; then
+    if  ismx95 || ismx95frdm ; then
         systemManagerToolchain
     fi
 
@@ -361,20 +361,16 @@ ismx8ulp9() {
 
 ismx95() {
     if [ $SOC == "95" ]; then
-        true
-        return
+        return 0    # success
     else
-        false
-        return
+        return 1    # fail
     fi
 }
 ismx95frdm() {
     if [ $SOC == "95frdm" ]; then
-        true
-        return
+        return 0  # success
     else
-        false
-        return
+        return 1  # fail
     fi
 }
 
@@ -822,7 +818,7 @@ fw_install
 # Call functions to build
 build_uboot
 build_atf
-if [[ ismx95 || ismx95frdm ]]; then
+if  ismx95 || ismx95frdm ; then
     build_sm
     build_imxoei
 fi
