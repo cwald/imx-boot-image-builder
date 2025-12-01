@@ -10,7 +10,7 @@
 
 
 #Script version
-SCR_VER="4.0"
+SCR_VER="4.1"
 
 # Define script colors
 bold=$(tput bold)
